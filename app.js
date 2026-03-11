@@ -24,7 +24,7 @@ const fbDb   = getFirestore(fbApp);
 /* ================================================================
    CONSTANTS
    ================================================================ */
-const QUIZ_URL = 'https://ovieofdelta.github.io/medlablcuquiz_website';
+const QUIZ_URL = 'https://ovieofDelta.github.io/OvieOfDelta_website';
 
 const BADGE_DATA = {
     "Chemical Pathologist":  "🧪",
@@ -988,6 +988,48 @@ onAuthStateChanged(fbAuth, async function(fbUser) {
     }
     // Not signed in — auth screen is already visible by default
 });
+
+
+/* ================================================================
+   ANTI-CHEAT
+   ================================================================ */
+
+/* ── Right-click disable (quiz screen only) ─────────────────── */
+document.addEventListener('contextmenu', function(e) {
+    if (document.getElementById('game-s') &&
+        !document.getElementById('game-s').classList.contains('hidden')) {
+        e.preventDefault();
+        showToast('Right-click is disabled during the quiz.', 'error', 2000);
+    }
+});
+
+/* ── DevTools detection ─────────────────────────────────────── */
+(function() {
+    var devtoolsOpen  = false;
+    var warningShown  = false;
+    var THRESHOLD     = 160;
+
+    function check() {
+        var widthGap  = window.outerWidth  - window.innerWidth;
+        var heightGap = window.outerHeight - window.innerHeight;
+        var open      = widthGap > THRESHOLD || heightGap > THRESHOLD;
+
+        if (open && !devtoolsOpen) {
+            devtoolsOpen = true;
+            // Only warn if a quiz is in progress
+            if (document.getElementById('game-s') &&
+                !document.getElementById('game-s').classList.contains('hidden')) {
+                showToast('⚠️ Developer tools detected. This will be logged.', 'error', 5000);
+                warningShown = true;
+            }
+        } else if (!open && devtoolsOpen) {
+            devtoolsOpen = false;
+            warningShown = false;
+        }
+    }
+
+    setInterval(check, 1000);
+})();
 
 /* ================================================================
    EXPOSE EVERYTHING TO window FOR HTML onclick= HANDLERS

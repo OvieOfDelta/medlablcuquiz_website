@@ -899,3 +899,9 @@ label.field-label {
     border-color: var(--danger);
     background: rgba(255, 71, 87, 0.06);
 }
+
+/* ── Anti-cheat toast override — more prominent for warnings ── */
+#toast.toast-error {
+    border-width: 2px;
+    font-size: 0.95rem;
+}
