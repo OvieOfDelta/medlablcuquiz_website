@@ -8,11 +8,9 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="toast"></div>
 <div id="app-container">
 
-     <!-- ============================================================
-         LOGOUT LOADER OVERLAY
-         ============================================================ -->
     <div id="logout-loader">
         <div class="logout-ring"></div>
         <div class="logout-bar-wrap">
@@ -21,9 +19,6 @@
         <div class="logout-text" id="logout-text">Signing you out…</div>
     </div>
 
-        <!-- ============================================================
-         LOGIN LOADER OVERLAY
-         ============================================================ -->
     <div id="login-loader" class="hidden">
         <div class="loader-ring"></div>
         <div class="loader-dots">
@@ -37,23 +32,20 @@
         </div>
         <div class="loader-text" id="loader-text">Loading your dashboard…</div>
     </div>
-    
+
     <button id="theme-icon" onclick="toggleTheme()">🌙</button>
 
-    <!-- ============================================================
-         AUTH SCREEN
-         ============================================================ -->
+    <!-- AUTH SCREEN -->
     <div id="auth-s" class="section">
-        <h1>Med Lab Quiz </h1>
-        <p id="auth-msg" style="margin-bottom: 16px;">Login to practice for MCQs</p>
+        <h1>Med Lab Quiz</h1>
+        <p id="auth-msg" style="margin-bottom:16px;">Login to practice for MCQs</p>
 
-        <input type="text"     id="u-in"    placeholder="Username">
-        <input type="password" id="p-in"    placeholder="Password" id="p-in">
+        <input type="text"     id="u-in" placeholder="Username">
+        <input type="password" id="p-in" placeholder="Password">
 
-        <!-- Register-only fields -->
         <div id="reg-extra" class="hidden">
             <input type="text" id="hint-in" placeholder="Security Hint (e.g. first pet's name)">
-
+            <input type="text" id="invite-code-in" placeholder="Invite Code (optional)">
             <label class="field-label">Avatar</label>
             <select id="avatar-in" onchange="toggleCustomFile()">
                 <option value="🦁">Lion 🦁</option>
@@ -66,7 +58,6 @@
             <div class="avatar-preview-wrap"><img id="reg-preview" class="avatar-img hidden"></div>
         </div>
 
-        <!-- Forgot-password fields -->
         <div id="forgot-extra" class="hidden">
             <input type="text" id="hint-recover" placeholder="Enter your security hint">
         </div>
@@ -76,17 +67,18 @@
             <label for="remember-me">Remember Me</label>
         </div>
 
-        <button class="btn primary"    onclick="handleAuth()"             id="auth-main-btn">Enter</button>
-        <button class="btn secondary"  onclick="setAuthMode('register')"  id="btn-reg">Register New Account</button>
-        <button class="btn secondary"  onclick="setAuthMode('forgot')"    id="btn-forgot">Forgot Password?</button>
+        <button class="btn primary"   onclick="handleAuth()"            id="auth-main-btn">Enter</button>
+        <button class="btn secondary" onclick="setAuthMode('register')" id="btn-reg">Register New Account</button>
+        <button class="btn secondary" onclick="setAuthMode('forgot')"   id="btn-forgot">Forgot Password?</button>
         <button class="btn secondary hidden" onclick="setAuthMode('login')" id="btn-login">Back to Login</button>
     </div>
 
-    <!-- ============================================================
-         DASHBOARD / MAIN SCREEN
-         ============================================================ -->
-     <div id="main-s" class="section hidden">
+    <!-- DASHBOARD -->
+    <div id="main-s" class="section hidden">
         <h2><span id="display-avatar"></span> Hi, <span id="display-user"></span>!</h2>
+
+        <!-- Challenge notification banner -->
+        <div id="challenge-banner" class="hidden"></div>
 
         <div class="rank-card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -94,9 +86,8 @@
                 <span id="display-high" style="font-size:0.85rem; color:var(--muted);"></span>
             </div>
             <div class="progress-container"><div id="rank-progress" class="progress-fill"></div></div>
-            <p>Daily Streak: <span id="display-streak" class="streak-flame">0</span> 🔥</p>
+            <p>Daily Streak: <span id="display-streak">0</span> 🔥</p>
         </div>
-
 
         <label class="field-label">Difficulty / Mode</label>
         <select id="diff-select" style="margin-bottom:20px;">
@@ -107,31 +98,27 @@
         </select>
 
         <div id="sub-list" class="grid-2">
-            <button class="btn primary"    onclick="showSubMenu('Chemical Pathology')">Chemical Pathology 🧪</button>
-            <button class="btn primary"    onclick="showSubMenu('Histopathology')">Histopathology 🥼</button>
-            <button class="btn primary"    onclick="showSubMenu('Hematology')">Hematology 🩸</button>
-            <button class="btn primary"    onclick="showSubMenu('Microbiology')">Microbiology 🔬</button>
-            <button class="btn primary"    onclick="showSubMenu('Laboratory Management')">Laboratory Management 🛡️</button>
-
-            <button class="btn secondary"  onclick="showLeaderboard()">📊 Leaderboard</button>
-            <button class="btn secondary"  onclick="showTrophies()">🏆 Trophy Case</button>
-            <button class="btn secondary"  onclick="showSettings()">⚙️ Settings</button>
+            <button class="btn primary" onclick="showSubMenu('Chemical Pathology')">Chemical Pathology 🧪</button>
+            <button class="btn primary" onclick="showSubMenu('Histopathology')">Histopathology 🥼</button>
+            <button class="btn primary" onclick="showSubMenu('Hematology')">Hematology 🩸</button>
+            <button class="btn primary" onclick="showSubMenu('Microbiology')">Microbiology 🔬</button>
+            <button class="btn primary" onclick="showSubMenu('Laboratory Management')">Laboratory Management 🛡️</button>
+            <button class="btn secondary" onclick="showLeaderboard()">📊 Leaderboard</button>
+            <button class="btn secondary" onclick="showTrophies()">🏆 Trophy Case</button>
+            <button class="btn secondary" onclick="showShare()">🔗 Invite &amp; Share</button>
+            <button class="btn secondary" onclick="showSettings()">⚙️ Settings</button>
             <button class="btn danger-btn" onclick="logout()">Logout 🚪</button>
         </div>
     </div>
 
-    <!-- ============================================================
-         SUB-CATEGORY SCREEN
-         ============================================================ -->
+    <!-- SUBCATEGORY SCREEN -->
     <div id="sub-s" class="section hidden">
         <h2 id="sub-title">Category</h2>
         <div id="sub-list-dynamic"></div>
         <button class="btn secondary" onclick="backToMain()" style="margin-top:10px;">← Back to Menu</button>
     </div>
 
-    <!-- ============================================================
-         GAME SCREEN
-         ============================================================ -->
+    <!-- GAME SCREEN -->
     <div id="game-s" class="section hidden">
         <div class="game-header">
             <span id="game-stats">Q 1/1</span>
@@ -144,9 +131,7 @@
         <button class="btn danger-btn sm" onclick="endQuiz()" style="border-style:dashed;">Stop &amp; Reveal Results 🛑</button>
     </div>
 
-    <!-- ============================================================
-         RESULTS SCREEN
-         ============================================================ -->
+    <!-- RESULTS SCREEN -->
     <div id="res-s" class="section hidden">
         <h2>Quiz Complete!</h2>
         <div class="res-score-wrap animate-pop">
@@ -155,34 +140,65 @@
         </div>
         <hr class="divider">
         <div id="mistake-list" style="max-height:260px; overflow-y:auto;"></div>
-        <button class="btn primary"   onclick="finishAndReturn()" style="margin-top:14px;">Return to Topics</button>
+        <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+            <button class="btn secondary sm" style="flex:1;" onclick="shareScore()">📤 Share Score</button>
+            <button class="btn secondary sm" style="flex:1;" onclick="challengeFromResult()">⚔️ Challenge</button>
+        </div>
+        <button class="btn primary"   onclick="finishAndReturn()" style="margin-top:8px;">Return to Topics</button>
         <button class="btn secondary" onclick="backToMain()">Back to Menu</button>
     </div>
 
-    <!-- ============================================================
-         LEADERBOARD SCREEN
-         ============================================================ -->
+    <!-- LEADERBOARD SCREEN -->
     <div id="lead-s" class="section hidden">
         <h2>🏆 Global Rankings</h2>
         <div id="lead-list"></div>
+        <button class="btn secondary" onclick="showShare()" style="margin-top:4px;">🔗 Invite a Friend</button>
         <button class="btn secondary" onclick="backToMain()">← Back</button>
     </div>
 
-    <!-- ============================================================
-         TROPHY SCREEN
-         ============================================================ -->
+    <!-- SHARE & INVITE SCREEN -->
+    <div id="share-s" class="section hidden">
+        <h2>🔗 Invite &amp; Share</h2>
+
+        <!-- Invite Code -->
+        <div class="share-card">
+            <div class="share-card-label">YOUR INVITE CODE</div>
+            <div class="invite-code-display" id="invite-code-display">——</div>
+            <p style="font-size:0.8rem; color:var(--muted); margin:6px 0 12px;">Share this with friends — when they register using it you'll both be linked on the leaderboard!</p>
+            <button class="btn primary sm" onclick="copyInviteCode()">📋 Copy Code</button>
+        </div>
+
+        <!-- Share Quiz Link -->
+        <div class="share-card" style="margin-top:14px;">
+            <div class="share-card-label">SHARE THE QUIZ</div>
+            <div class="share-link-display" id="share-link-display">Loading…</div>
+            <div style="display:flex; gap:10px; margin-top:12px;">
+                <button class="btn primary sm" style="flex:1;" onclick="copyQuizLink()">📋 Copy Link</button>
+                <button class="btn secondary sm" style="flex:1;" onclick="nativeShare()">📤 Share via…</button>
+            </div>
+        </div>
+
+        <!-- Active Challenges -->
+        <div style="margin-top:20px;">
+            <h3 style="margin-bottom:10px;">⚔️ Active Challenges</h3>
+            <div id="challenges-list">
+                <p style="color:var(--muted); font-size:0.9rem; text-align:center; padding:10px;">Loading…</p>
+            </div>
+        </div>
+
+        <button class="btn secondary" onclick="backToMain()" style="margin-top:14px;">← Back to Menu</button>
+    </div>
+
+    <!-- TROPHY SCREEN -->
     <div id="trophy-s" class="section hidden">
         <h2>🏆 Trophy Gallery</h2>
         <div id="badge-grid" class="badge-grid"></div>
         <button class="btn secondary" onclick="backToMain()">← Back</button>
     </div>
 
-    <!-- ============================================================
-         SETTINGS SCREEN
-         ============================================================ -->
+    <!-- SETTINGS SCREEN -->
     <div id="settings-s" class="section hidden">
         <h2>⚙️ Settings</h2>
-
         <label class="field-label">Change Avatar</label>
         <select id="set-avatar">
             <option value="🦁">Lion 🦁</option>
@@ -190,28 +206,20 @@
             <option value="🦉">Owl 🦉</option>
             <option value="🥷">Ninja 🥷</option>
         </select>
-
         <label class="field-label">Update Profile Photo</label>
         <input type="file" id="file-set" accept="image/*" onchange="handleImageUpload(this, 'set-preview')">
         <div class="avatar-preview-wrap"><img id="set-preview" class="avatar-img hidden"></div>
-
         <label class="field-label">New Password</label>
         <input type="password" id="set-pass" placeholder="Leave blank to keep current">
-
-        <button class="btn primary"    onclick="updateSettings()" style="margin-top:16px;">Save Changes</button>
+        <button class="btn primary"   onclick="updateSettings()" style="margin-top:16px;">Save Changes</button>
         <button class="btn danger-btn" onclick="resetData()">Wipe My Progress</button>
-        <button class="btn secondary"  onclick="backToMain()">← Back</button>
+        <button class="btn secondary" onclick="backToMain()">← Back</button>
     </div>
 
-    <footer class="login-footer"> &copy; 2026 NIMELSSA-LCU</footer>
-</div><!-- /#app-container -->
+    <footer class="login-footer">&copy; 2026 NIMELSSA-LCU</footer>
+</div>
 
-
-<!-- Plain script - loads first -->
-    <script src="script.js"></script>
-<!-- Firebase module - loads second -->
-    <script type="module" src="firebase.js"></script>
-
-    
+<script src="script.js"></script>
+<script type="module" src="firebase.js"></script>
 </body>
 </html>

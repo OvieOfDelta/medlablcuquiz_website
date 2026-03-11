@@ -378,7 +378,10 @@ function endQuiz() {
         document.getElementById('res-sub').innerText = subMsg;
     }
 
-    if (!isZenResult) { window.fbSaveHighScore(score); }
+    if (!isZenResult) {
+        window.fbSaveHighScore(score);
+        window.fbCheckChallengeResult(score); // check if active challenge was beaten
+    }
 
     const list = document.getElementById('mistake-list');
     list.innerHTML = '';
@@ -427,12 +430,83 @@ function showSettings() {
     }
 }
 
+
+/* ================================================================
+   SHARE & INVITE
+   ================================================================ */
+const QUIZ_URL = 'https://ovieofDelta.github.io/OvieOfDelta_website';
+
+function showShare() { window.fbShowShare(); }
+
+function copyInviteCode() {
+    const code = document.getElementById('invite-code-display').innerText;
+    if (!code || code === '——') { showToast('No invite code yet.', 'error'); return; }
+    navigator.clipboard.writeText(code)
+        .then(() => showToast('Invite code copied! 📋', 'success'))
+        .catch(() => showToast('Could not copy. Please copy manually.', 'error'));
+}
+
+function copyQuizLink() {
+    navigator.clipboard.writeText(QUIZ_URL)
+        .then(() => showToast('Quiz link copied! 📋', 'success'))
+        .catch(() => showToast('Could not copy. Please copy manually.', 'error'));
+}
+
+function nativeShare() {
+    const d = window.userDoc || {};
+    const shareData = {
+        title: 'Med Lab Quiz — NIMELSSA LCU',
+        text: 'I've been using this quiz to prepare for MCQs — try it out! 🧪',
+        url:  QUIZ_URL
+    };
+    if (navigator.share) {
+        navigator.share(shareData).catch(() => copyQuizLink());
+    } else {
+        copyQuizLink();
+    }
+}
+
+function shareScore() {
+    const scoreEl = document.getElementById('res-score');
+    const subEl   = document.getElementById('res-sub');
+    const score   = scoreEl ? scoreEl.innerText : '?';
+    const topic   = window.currentSsc || window.currentSub || 'Medical Lab';
+    const d       = window.userDoc || {};
+    const rank    = d.high >= 20 ? '💎 Diamond' : d.high >= 10 ? '🥇 Gold' :
+                    d.high >= 5  ? '🥈 Silver'  : d.high >= 1  ? '🥉 Bronze' : '🎯 Unranked';
+
+    const text =
+        '🧪 Med Lab Quiz — NIMELSSA LCU
+' +
+        'I scored ' + score + ' on ' + topic + '!
+' +
+        rank + ' | 🔥 ' + (d.streak || 0) + ' day streak
+' +
+        'Challenge me → ' + QUIZ_URL;
+
+    if (navigator.share) {
+        navigator.share({ title: 'My Med Lab Score', text, url: QUIZ_URL })
+            .catch(() => {
+                navigator.clipboard.writeText(text)
+                    .then(() => showToast('Score card copied! Paste anywhere to share 📋', 'success', 4000));
+            });
+    } else {
+        navigator.clipboard.writeText(text)
+            .then(() => showToast('Score card copied! Paste anywhere to share 📋', 'success', 4000))
+            .catch(() => showToast('Could not copy automatically.', 'error'));
+    }
+}
+
+function challengeFromResult() {
+    window.fbShowChallengeModal();
+}
+
 /* ================================================================
    UTILITY
    ================================================================ */
 function hideAll() {
     clearInterval(timer);
-    ['auth-s','main-s','sub-s','game-s','res-s','lead-s','trophy-s','settings-s']
+    ['auth-s','main-s','sub-s','game-s','res-s','lead-s','trophy-s','settings-s','share-s']
         .forEach(id => document.getElementById(id).classList.add('hidden'));
 }
 
@@ -485,3 +559,125 @@ function logout() {
         }, 500);
     }, 1200);
 }
+
+/* ================================================================
+   SHARE & INVITE SYSTEM
+   ================================================================ */
+
+const QUIZ_URL = 'https://ovieofDelta.github.io/OvieOfDelta_website/medlabquiz.html';
+
+/* ── Show Share screen ─────────────────────────────────────── */
+function showShare() {
+    hideAll();
+    document.getElementById('share-s').classList.remove('hidden');
+
+    // Show quiz URL
+    document.getElementById('share-url-display').innerText = QUIZ_URL;
+
+    // Show invite code
+    const d = window.userDoc || {};
+    document.getElementById('my-invite-code').innerText = d.inviteCode || '—';
+
+    // Load active challenges
+    loadActiveChallenges();
+}
+
+/* ── Copy quiz link to clipboard ───────────────────────────── */
+function copyQuizLink() {
+    navigator.clipboard.writeText(QUIZ_URL).then(() => {
+        showToast('Quiz link copied! 📋', 'success');
+    }).catch(() => {
+        showToast('Could not copy. Long-press the link to copy manually.', 'info', 4000);
+    });
+}
+
+/* ── Copy invite code ──────────────────────────────────────── */
+function copyInviteCode() {
+    const code = (window.userDoc || {}).inviteCode;
+    if (!code || code === '—') {
+        showToast('No invite code yet. Try refreshing.', 'info');
+        return;
+    }
+    const text = 'Join me on MedLab Quiz! Use my invite code: ' + code + '\n\nPlay here: ' + QUIZ_URL;
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Invite message copied! 📋', 'success');
+    }).catch(() => {
+        showToast('Copy failed. Your code is: ' + code, 'info', 5000);
+    });
+}
+
+/* ── Share result after quiz ───────────────────────────────── */
+function shareResult() {
+    const scoreEl  = document.getElementById('res-score').innerText;
+    const d        = window.userDoc || {};
+    const rank     = d.high >= 20 ? '💎 Diamond'
+                   : d.high >= 10 ? '🥇 Gold'
+                   : d.high >= 5  ? '🥈 Silver'
+                   : d.high > 0   ? '🥉 Bronze'
+                   : '🎯 Unranked';
+    const streak   = d.streak || 0;
+    const topic    = currentSsc || currentSub || currentCat || 'MedLab';
+
+    const text =
+        '🧪 Med Lab Quiz — NIMELSSA LCU\n' +
+        'I just scored ' + scoreEl + ' on ' + topic + '!\n' +
+        rank + ' | 🔥 ' + streak + ' day streak\n\n' +
+        '👉 Play here: ' + QUIZ_URL;
+
+    // Try native share sheet (mobile) first, fall back to clipboard
+    if (navigator.share) {
+        navigator.share({
+            title: 'Med Lab Quiz Score',
+            text:  text,
+            url:   QUIZ_URL
+        }).catch(() => {}); // user dismissed — no error needed
+    } else {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Score copied to clipboard! Paste anywhere to share 📋', 'success', 4000);
+        }).catch(() => {
+            showToast('Could not copy automatically.', 'info');
+        });
+    }
+}
+
+/* ── Show challenge modal from results screen ──────────────── */
+function showChallengeModal() {
+    if (!currentSsc && !currentSub) {
+        showToast('Finish a quiz first to issue a challenge.', 'info');
+        return;
+    }
+    const topic = currentSsc || currentSub;
+    document.getElementById('challenge-topic').innerText = topic;
+    document.getElementById('challenge-modal').classList.remove('hidden');
+    loadChallengePlayerList(topic);
+}
+
+function closeChallengeModal() {
+    document.getElementById('challenge-modal').classList.add('hidden');
+}
+
+/* ── Load player list in challenge modal ───────────────────── */
+async function loadChallengePlayerList(topic) {
+    const list = document.getElementById('challenge-player-list');
+    list.innerHTML = '<p style="text-align:center; color:var(--muted); font-size:0.85rem;">Loading players…</p>';
+    await window.fbLoadChallengeablePlayers(topic);
+}
+
+/* ── Load active challenges on share screen ────────────────── */
+async function loadActiveChallenges() {
+    const el = document.getElementById('challenges-list');
+    el.innerHTML = '<p style="font-size:0.85rem; color:var(--muted); text-align:center; padding:10px;">Loading…</p>';
+    await window.fbLoadChallenges();
+}
+
+/* ── Challenge buttons on leaderboard (called from firebase.js) */
+function challengeFromLeaderboard(targetUsername, topic) {
+    currentSsc = topic;
+    currentSub = topic;
+    document.getElementById('challenge-topic').innerText = topic || 'General';
+    document.getElementById('challenge-modal').classList.remove('hidden');
+    window.fbSendChallenge(targetUsername, topic || 'General', 0);
+}
+
+// acceptChallenge is defined in firebase.js and exposed via window.acceptChallenge
+function acceptChallenge(id, topic) { window.acceptChallenge(id, topic); }
