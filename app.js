@@ -24,7 +24,7 @@ const fbDb   = getFirestore(fbApp);
 /* ================================================================
    CONSTANTS
    ================================================================ */
-const QUIZ_URL = 'https://github.com/OvieOfDelta/medlablcuquiz_website';
+const QUIZ_URL = 'https://ovieofDelta.github.io/OvieOfDelta_website';
 
 const BADGE_DATA = {
     "Chemical Pathologist":  "🧪",
@@ -646,11 +646,16 @@ async function fbShowMain() {
 
     const today = new Date().setHours(0, 0, 0, 0);
     var streakIncreased = false;
-    if (!d.lastLogin) {
+    var lastLogin = d.lastLogin ? new Date(d.lastLogin).setHours(0, 0, 0, 0) : null;
+    if (!lastLogin) {
         d.streak = 1; streakIncreased = true;
-    } else if (today === d.lastLogin + 86400000) {
-        d.streak++; streakIncreased = true;
-    } else if (today > d.lastLogin) {
+    } else if (today === lastLogin + 86400000) {
+        d.streak = (d.streak || 0) + 1; streakIncreased = true;
+    } else if (today === lastLogin) {
+        // Same day login — keep streak, don't increment
+        streakIncreased = false;
+    } else if (today > lastLogin + 86400000) {
+        // Missed a day — reset streak
         d.streak = 1;
     }
     d.lastLogin = today;
@@ -1023,6 +1028,15 @@ onAuthStateChanged(fbAuth, async function(fbUser) {
     if (fbUser) {
         const data = await loadUserDoc(fbUser.uid);
         if (data) {
+            // Block disabled accounts
+            if (data.disabled) {
+                signOut(fbAuth);
+                hideAll();
+                document.getElementById('auth-s').classList.remove('hidden');
+                setAuthMode('login');
+                showToast('This account has been disabled. Contact support.', 'error', 5000);
+                return;
+            }
             showLoginLoader(function() { fbShowMain(); });
         }
     }
@@ -1166,19 +1180,23 @@ function adminRenderPlayers(players) {
 
         var actions = '';
         if (!isSelf) {
+            var uid2  = p._uid;
+            var uname = p.username;
+            var dis   = isDisabled;
+
             actions +=
                 '<button class="admin-action-btn ' + (isDisabled ? 'enable-btn' : 'disable-btn') + '" ' +
-                'onclick="adminToggleDisable('' + p._uid + '','' + p.username + '',' + isDisabled + ')">' +
+                'onclick="adminToggleDisable(\'' + uid2 + '\',\'' + uname + '\',' + dis + ')">' +
                 (isDisabled ? '✅ Enable' : '🚫 Disable') + '</button>';
 
             if (!isAdminP) {
-                actions += '<button class="admin-action-btn promote-btn" onclick="adminPromote('' + p._uid + '','' + p.username + '')">🛡️ Make Admin</button>';
+                actions += '<button class="admin-action-btn promote-btn" onclick="adminPromote(\'' + uid2 + '\',\'' + uname + '\')">🛡️ Make Admin</button>';
             } else if (!isSelf) {
-                actions += '<button class="admin-action-btn demote-btn" onclick="adminDemote('' + p._uid + '','' + p.username + '')">👤 Remove Admin</button>';
+                actions += '<button class="admin-action-btn demote-btn" onclick="adminDemote(\'' + uid2 + '\',\'' + uname + '\')">👤 Remove Admin</button>';
             }
 
-            actions += '<button class="admin-action-btn reset-btn" onclick="adminResetProgress('' + p._uid + '','' + p.username + '')">🔄 Reset Progress</button>';
-            actions += '<button class="admin-action-btn delete-btn" onclick="adminDeleteUser('' + p._uid + '','' + p.username + '')">🗑️ Delete</button>';
+            actions += '<button class="admin-action-btn reset-btn" onclick="adminResetProgress(\'' + uid2 + '\',\'' + uname + '\')">🔄 Reset Progress</button>';
+            actions += '<button class="admin-action-btn delete-btn" onclick="adminDeleteUser(\'' + uid2 + '\',\'' + uname + '\')">🗑️ Delete</button>';
         } else {
             actions = '<span style="color:var(--muted);font-size:0.8rem;font-style:italic;">This is you</span>';
         }
