@@ -24,7 +24,7 @@ const fbDb   = getFirestore(fbApp);
 /* ================================================================
    CONSTANTS
    ================================================================ */
-const QUIZ_URL = 'https://ovieofdelta.github.io/medlablcuquiz_website';
+const QUIZ_URL = 'https://ovieofDelta.github.io/OvieOfDelta_website';
 
 const BADGE_DATA = {
     "Chemical Pathologist":  "🧪",
@@ -101,7 +101,7 @@ function showToast(msg, type, duration) {
    ================================================================ */
 function hideAll() {
     clearInterval(timer);
-    ['auth-s','main-s','sub-s','game-s','res-s','lead-s','share-s','trophy-s','settings-s']
+    ['auth-s','main-s','sub-s','game-s','res-s','lead-s','share-s','trophy-s','settings-s','admin-s']
         .forEach(function(id) { document.getElementById(id).classList.add('hidden'); });
 }
 
@@ -594,7 +594,18 @@ async function fbLogin() {
         await signInWithEmailAndPassword(fbAuth, fakeEmail, password);
         // onAuthStateChanged takes it from here
     } catch (err) {
-        showToast('Invalid username or password.', 'error');
+        const code = err.code || '';
+        if (code === 'auth/network-request-failed') {
+            showToast('No internet connection. Please check your network and try again.', 'error', 4000);
+        } else if (code === 'auth/too-many-requests') {
+            showToast('Too many attempts. Please wait a few minutes and try again.', 'error', 4000);
+        } else if (code === 'auth/user-disabled') {
+            showToast('This account has been disabled. Contact support.', 'error', 4000);
+        } else if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+            showToast('Invalid username or password.', 'error');
+        } else {
+            showToast('Login failed. Check your connection and try again.', 'error', 4000);
+        }
     }
 }
 
@@ -672,6 +683,16 @@ async function fbShowMain() {
     document.getElementById('display-streak').classList.toggle('streak-flame', streakIncreased);
 
     fbLoadChallengeBanner();
+
+    // Show admin button only for admins
+    const adminBtn = document.getElementById('admin-btn');
+    if (adminBtn) {
+        if (isAdmin()) {
+            adminBtn.classList.remove('hidden');
+        } else {
+            adminBtn.classList.add('hidden');
+        }
+    }
 }
 
 /* ================================================================
@@ -1050,9 +1071,250 @@ document.addEventListener('contextmenu', function(e) {
     setInterval(check, 1000);
 })();
 
+
+/* ================================================================
+   ADMIN PANEL
+   ================================================================ */
+
+// Your username — only this account sees the Admin Panel button
+const ADMIN_USERNAMES = ['Jesse'];   // Add more admins here if needed
+
+function isAdmin() {
+    const d = window.userDoc || {};
+    return d.role === 'admin' || ADMIN_USERNAMES.includes(d.username);
+}
+
+function showAdmin() {
+    if (!isAdmin()) { showToast('Access denied.', 'error'); return; }
+    hideAll();
+    document.getElementById('admin-s').classList.remove('hidden');
+    adminLoadPlayers();
+}
+
+async function adminLoadPlayers() {
+    const listEl  = document.getElementById('admin-player-list');
+    const statsEl = document.getElementById('admin-stats-bar');
+    listEl.innerHTML  = '<p style="text-align:center;color:var(--muted);padding:20px;">Loading players…</p>';
+    statsEl.innerHTML = '';
+
+    try {
+        const snap = await getDocs(collection(fbDb, 'users'));
+        window._adminPlayers = [];
+        snap.forEach(function(d) {
+            const data  = d.data();
+            data._uid   = d.id;
+            window._adminPlayers.push(data);
+        });
+        window._adminPlayers.sort(function(a, b) { return (b.high || 0) - (a.high || 0); });
+
+        // Stats bar
+        const total    = window._adminPlayers.length;
+        const played   = window._adminPlayers.filter(function(p) { return p.high > 0; }).length;
+        const disabled = window._adminPlayers.filter(function(p) { return p.disabled; }).length;
+        const admins   = window._adminPlayers.filter(function(p) { return p.role === 'admin'; }).length;
+
+        statsEl.innerHTML =
+            '<div class="admin-stat"><b>' + total    + '</b><span>Total</span></div>' +
+            '<div class="admin-stat"><b>' + played   + '</b><span>Played</span></div>' +
+            '<div class="admin-stat"><b>' + disabled + '</b><span>Disabled</span></div>' +
+            '<div class="admin-stat"><b>' + admins   + '</b><span>Admins</span></div>';
+
+        adminRenderPlayers(window._adminPlayers);
+
+    } catch (err) {
+        listEl.innerHTML = '<p style="color:var(--danger);text-align:center;">Could not load players.</p>';
+    }
+}
+
+function adminFilterPlayers() {
+    const query   = document.getElementById('admin-search').value.trim().toLowerCase();
+    const players = (window._adminPlayers || []).filter(function(p) {
+        return !query || (p.username || '').toLowerCase().includes(query);
+    });
+    adminRenderPlayers(players);
+}
+
+function adminRenderPlayers(players) {
+    const listEl = document.getElementById('admin-player-list');
+    listEl.innerHTML = '';
+
+    if (players.length === 0) {
+        listEl.innerHTML = '<p style="text-align:center;color:var(--muted);padding:20px;">No players found.</p>';
+        return;
+    }
+
+    players.forEach(function(p) {
+        const isDisabled = p.disabled || false;
+        const isAdminP   = p.role === 'admin';
+        const myName     = (window.userDoc || {}).username;
+        const isSelf     = p.username === myName;
+
+        const card = document.createElement('div');
+        card.className = 'admin-player-card' + (isDisabled ? ' disabled-player' : '');
+
+        const avatarHtml = (p.avatar && p.avatar.length > 10)
+            ? '<img src="' + p.avatar + '" class="avatar-img" style="width:36px;height:36px;border-radius:50%;">'
+            : '<span style="font-size:1.6rem;">' + (p.avatar || '👤') + '</span>';
+
+        const roleBadge = isAdminP
+            ? '<span class="role-badge admin-role">🛡️ Admin</span>'
+            : '<span class="role-badge user-role">👤 User</span>';
+
+        const statusBadge = isDisabled
+            ? '<span class="role-badge disabled-role">🚫 Disabled</span>'
+            : '<span class="role-badge active-role">✅ Active</span>';
+
+        var actions = '';
+        if (!isSelf) {
+            actions +=
+                '<button class="admin-action-btn ' + (isDisabled ? 'enable-btn' : 'disable-btn') + '" ' +
+                'onclick="adminToggleDisable('' + p._uid + '','' + p.username + '',' + isDisabled + ')">' +
+                (isDisabled ? '✅ Enable' : '🚫 Disable') + '</button>';
+
+            if (!isAdminP) {
+                actions += '<button class="admin-action-btn promote-btn" onclick="adminPromote('' + p._uid + '','' + p.username + '')">🛡️ Make Admin</button>';
+            } else if (!isSelf) {
+                actions += '<button class="admin-action-btn demote-btn" onclick="adminDemote('' + p._uid + '','' + p.username + '')">👤 Remove Admin</button>';
+            }
+
+            actions += '<button class="admin-action-btn reset-btn" onclick="adminResetProgress('' + p._uid + '','' + p.username + '')">🔄 Reset Progress</button>';
+            actions += '<button class="admin-action-btn delete-btn" onclick="adminDeleteUser('' + p._uid + '','' + p.username + '')">🗑️ Delete</button>';
+        } else {
+            actions = '<span style="color:var(--muted);font-size:0.8rem;font-style:italic;">This is you</span>';
+        }
+
+        card.innerHTML =
+            '<div class="admin-player-top">' +
+                '<div class="admin-player-info">' +
+                    avatarHtml +
+                    '<div>' +
+                        '<b>' + (p.username || 'Unknown') + '</b>' +
+                        '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;">' + roleBadge + statusBadge + '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="admin-player-stats">' +
+                    '<span>🏆 ' + (p.high || 0) + ' pts</span>' +
+                    '<span>🔥 ' + (p.streak || 0) + ' streak</span>' +
+                    '<span>🏅 ' + ((p.badges || []).length) + ' badges</span>' +
+                '</div>' +
+            '</div>' +
+            '<div class="admin-actions">' + actions + '</div>';
+
+        listEl.appendChild(card);
+    });
+}
+
+async function adminToggleDisable(uid, username, currentlyDisabled) {
+    const action = currentlyDisabled ? 'enable' : 'disable';
+    if (!confirm((currentlyDisabled ? 'Enable' : 'Disable') + ' account for ' + username + '?')) return;
+
+    try {
+        const snap = await getDoc(doc(fbDb, 'users', uid));
+        if (!snap.exists()) { showToast('User not found.', 'error'); return; }
+        const data = snap.data();
+        await setDoc(doc(fbDb, 'users', uid), Object.assign({}, data, { disabled: !currentlyDisabled }));
+        showToast(username + ' has been ' + (currentlyDisabled ? 'enabled ✅' : 'disabled 🚫'), 'success', 3000);
+        adminLoadPlayers();
+    } catch (err) {
+        showToast('Could not update account.', 'error');
+    }
+}
+
+async function adminPromote(uid, username) {
+    if (!confirm('Promote ' + username + ' to Admin? They will see the Admin Panel.')) return;
+    try {
+        const snap = await getDoc(doc(fbDb, 'users', uid));
+        if (!snap.exists()) return;
+        await setDoc(doc(fbDb, 'users', uid), Object.assign({}, snap.data(), { role: 'admin' }));
+        showToast(username + ' is now an Admin 🛡️', 'success', 3000);
+        adminLoadPlayers();
+    } catch (err) {
+        showToast('Could not promote user.', 'error');
+    }
+}
+
+async function adminDemote(uid, username) {
+    if (!confirm('Remove admin role from ' + username + '?')) return;
+    try {
+        const snap = await getDoc(doc(fbDb, 'users', uid));
+        if (!snap.exists()) return;
+        await setDoc(doc(fbDb, 'users', uid), Object.assign({}, snap.data(), { role: 'user' }));
+        showToast(username + ' is now a regular user.', 'info', 3000);
+        adminLoadPlayers();
+    } catch (err) {
+        showToast('Could not demote user.', 'error');
+    }
+}
+
+async function adminResetProgress(uid, username) {
+    if (!confirm('Reset ALL progress for ' + username + '? This cannot be undone.')) return;
+    try {
+        const snap = await getDoc(doc(fbDb, 'users', uid));
+        if (!snap.exists()) return;
+        const data = snap.data();
+        await setDoc(doc(fbDb, 'users', uid), Object.assign({}, data, {
+            high: 0, streak: 0, mastery: {}, badges: [], notifications: []
+        }));
+        showToast(username + "'s progress has been reset.", 'info', 3000);
+        adminLoadPlayers();
+    } catch (err) {
+        showToast('Could not reset progress.', 'error');
+    }
+}
+
+async function adminDeleteUser(uid, username) {
+    if (!confirm('Permanently DELETE ' + username + '? This removes all their data and cannot be undone.')) return;
+    if (!confirm('Are you absolutely sure? This is irreversible.')) return;
+    try {
+        await setDoc(doc(fbDb, 'users', uid), { _deleted: true, username: '[Deleted]' });
+        showToast(username + ' has been deleted.', 'info', 3000);
+        adminLoadPlayers();
+    } catch (err) {
+        showToast('Could not delete user.', 'error');
+    }
+}
+
+async function adminBroadcast() {
+    const msg = document.getElementById('broadcast-msg').value.trim();
+    if (!msg) { showToast('Please type a message first.', 'error'); return; }
+    if (!confirm('Send this notification to ALL players?\n\n"' + msg + '"')) return;
+
+    try {
+        const snap = await getDocs(collection(fbDb, 'users'));
+        const batch = [];
+        snap.forEach(function(d) { batch.push({ id: d.id, data: d.data() }); });
+
+        var sent = 0;
+        for (var i = 0; i < batch.length; i++) {
+            const u      = batch[i];
+            const notifs = (u.data.notifications || []);
+            notifs.unshift({ msg: '📢 ' + msg, seen: false, ts: Date.now() });
+            await setDoc(doc(fbDb, 'users', u.id), Object.assign({}, u.data, {
+                notifications: notifs.slice(0, 10)
+            }));
+            sent++;
+        }
+
+        document.getElementById('broadcast-msg').value = '';
+        showToast('Notification sent to ' + sent + ' players! 📢', 'success', 4000);
+
+    } catch (err) {
+        showToast('Could not send notification.', 'error');
+        console.error(err);
+    }
+}
+
 /* ================================================================
    EXPOSE EVERYTHING TO window FOR HTML onclick= HANDLERS
    ================================================================ */
+window.showAdmin           = showAdmin;
+window.adminBroadcast      = adminBroadcast;
+window.adminFilterPlayers  = adminFilterPlayers;
+window.adminToggleDisable  = adminToggleDisable;
+window.adminPromote        = adminPromote;
+window.adminDemote         = adminDemote;
+window.adminResetProgress  = adminResetProgress;
+window.adminDeleteUser     = adminDeleteUser;
 window.handleAuth          = handleAuth;
 window.setAuthMode         = setAuthMode;
 window.toggleTheme         = toggleTheme;

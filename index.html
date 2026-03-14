@@ -108,6 +108,7 @@
             <button class="btn secondary" onclick="showShare()">🔗 Invite &amp; Share</button>
             <button class="btn secondary" onclick="showSettings()">⚙️ Settings</button>
             <button class="btn danger-btn" onclick="logout()">Logout 🚪</button>
+            <button class="btn admin-btn hidden" id="admin-btn" onclick="showAdmin()">🛡️ Admin Panel</button>
         </div>
     </div>
 
@@ -214,6 +215,33 @@
         <button class="btn primary"   onclick="updateSettings()" style="margin-top:16px;">Save Changes</button>
         <button class="btn danger-btn" onclick="resetData()">Wipe My Progress</button>
         <button class="btn secondary" onclick="backToMain()">← Back</button>
+    </div>
+
+    <!-- ADMIN PANEL SCREEN -->
+    <div id="admin-s" class="section hidden">
+        <div class="admin-header">
+            <h2>🛡️ Admin Panel</h2>
+            <span class="admin-badge">ADMIN</span>
+        </div>
+
+        <!-- Stats bar -->
+        <div id="admin-stats-bar" class="admin-stats-bar"></div>
+
+        <!-- Broadcast notification -->
+        <div class="admin-card">
+            <h3>📢 Send Notification to All Players</h3>
+            <textarea id="broadcast-msg" class="admin-textarea" placeholder="Type your message here... (e.g. 'New questions added! Check Hematology 🩸')"></textarea>
+            <button class="btn primary" onclick="adminBroadcast()">Send to All Players 📢</button>
+        </div>
+
+        <!-- Player table -->
+        <div class="admin-card">
+            <h3>👥 All Players</h3>
+            <input id="admin-search" class="admin-search" type="text" placeholder="🔍 Search by username..." oninput="adminFilterPlayers()">
+            <div id="admin-player-list"></div>
+        </div>
+
+        <button class="btn secondary" onclick="backToMain()" style="margin-top:10px;">← Back to Dashboard</button>
     </div>
 
     <footer class="login-footer">&copy; 2026 NIMELSSA-LCU</footer>
