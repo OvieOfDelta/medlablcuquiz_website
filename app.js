@@ -24,7 +24,7 @@ const fbDb   = getFirestore(fbApp);
 /* ================================================================
    CONSTANTS
    ================================================================ */
-const QUIZ_URL = 'https://ovieofdelta.github.io/medlablcuquiz_website';
+const QUIZ_URL = 'https://ovieofdelta.github.io/MedLabSolve/';
 
 const BADGE_DATA = {
     "Chemical Pathologist":  "🧪",
