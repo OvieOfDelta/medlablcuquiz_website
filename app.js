@@ -5,6 +5,8 @@ import { getAuth, createUserWithEmailAndPassword,
     from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs }
     from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+import { initializeAppCheck, ReCaptchaV3Provider }
+    from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app-check.js";
 
 /* ================================================================
    FIREBASE SETUP
@@ -20,6 +22,18 @@ const firebaseConfig = {
 const fbApp  = initializeApp(firebaseConfig);
 const fbAuth = getAuth(fbApp);
 const fbDb   = getFirestore(fbApp);
+
+/* ================================================================
+   APP CHECK — Prevents unauthorised use of Firebase even if
+   config keys are seen in source code. Only requests from your
+   registered domain will be accepted by Firestore & Auth.
+   ================================================================ */
+const appCheck = initializeAppCheck(fbApp, {
+    provider: new ReCaptchaV3Provider(
+        'PASTE_YOUR_RECAPTCHA_SITE_KEY_HERE'
+    ),
+    isTokenAutoRefreshEnabled: true
+});
 
 /* ================================================================
    CONSTANTS
